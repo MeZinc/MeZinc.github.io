@@ -21,8 +21,7 @@ xxxxxxx
 2. asddddd
 222. asdasd
 
-[百度](www.baidu.com "????")  
-![图片](assets/2.jpg "Title")
+[百度](https://www.baidu.com "????")  
 
 `int i = 0;` code
 
@@ -41,5 +40,3 @@ cout<<a+b;
 
 换行怎么换  
 两个及以上空格再回车
-
-![](F:\unityListProjects\MeZincNotes\MeZinc.github.io\assets\2.jpg)
