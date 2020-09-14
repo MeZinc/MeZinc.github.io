@@ -9,3 +9,14 @@
 ## Interaction of Color
 
 [Interaction of Color](assets/001/Interaction_of_Color.pdf)
+
+## Processing and system proxy
+If processing hangs or doesn't start while using a system proxy, close all instances of processing and open preferences.txt file in \AppData\Roaming\Processing.
+
+Change: proxy.system=true to proxy.system=false
+
+It should now work.
+
+## 待阅网页
+[https://www.mapbox.com/blog](https://www.mapbox.com/blog)  
+[https://mattdesl.svbtle.com/material-design-on-the-gpu](https://mattdesl.svbtle.com/material-design-on-the-gpu)

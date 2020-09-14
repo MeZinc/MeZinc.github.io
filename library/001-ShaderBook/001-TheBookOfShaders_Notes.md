@@ -52,9 +52,10 @@ return brightness * mix (vec3(1.0), rgb, saturation);
 ```
 
 <center>
-    <img src="assets/001/rgb.png" width="200"/> 
-    <img src="assets/001/rgb.png" width="200"/>
+    <img src="assets/001/RGB.png" width="200"/> 
+    <img src="assets/001/RYB.png" width="200"/>
 </center>
+
 ## <u>*Interaction of Color*</u> 的例子
 
 ```glsl
@@ -112,7 +113,7 @@ int newFunction(in vec4 aVec4,      // read-only
 
 ## Shapes 形状
 
-画一个方形的例子
+### 方形
 
 ```glsl
 vec2 bl = step(vec2(0.1),st);//用step函数进行 bottom left 边界判断（0.1处）
@@ -147,6 +148,89 @@ float rect_floorVersion(vec2 size, vec2 center, in vec2 st)
 	vec2 bl = floor(st + vec2(1-blp.x,1-blp.y)) ;
 	vec2 tr = 1 - floor(st + vec2(1-trp.x,1-trp.y));
 	return bl.x * bl.y * tr.x * tr.y;
-}//还有问题
+}
+```
+
+### 圆形
+
+#### 基础
+
+```glsl
+distance(vec2,vec2);//两点
+length(vec2);//向量长度
+
+//点乘（dot）获得距离场
+vec2 dist = st - vec2(0.5);
+dot(dist,dist);//获得的是距离的平方，节省开方操作
+```
+
+#### 圆角方形
+
+```glsl
+st = st * 2. - 1. ;//映射到(-1, 1）
+d = length(max(abs(st)-.3),0.);//圆角方形距离场，之后再用step或者smoothstep获得目标图形
+```
+
+#### 更多用途
+
+```glsl
+//d 为 获得的距离场
+d = step(.3, d);
+d = step(.3, d)* step(d, .4);//获取距离0.3到0.4的部分（环）
+d = smoothstep(.3, .4, d) * smoothstep(.6, .5, d);//平滑的环。
+```
+
+![smoothstepReverse](assets/001/smoothstepReverse.png) 
+
+
+
+### 极坐标 Polar shapes
+
+
+
+#### 基本
+
+```glsl
+vec2 pos = vec2(0.5) - st;
+float r = length(pos) * 2.0;//半径 * 2（之前的色环为了把(0,0.5)扩展到(0,1)来放所有颜色
+float a = atan(pos.y, pos.x);//角度(-PI,PI)
+```
+
+#### 应用
+
+```glsl
+float f = cos(a*3.);
+// f = abs(cos(a*3.));
+// f = abs(cos(a*2.5))*.5+.3;//花
+// f = abs(cos(a*12.)*sin(a*3.))*.8+.1;//雪花
+// f = smoothstep(-.5,1., cos(a*10.))*0.2+0.5;//齿轮
+
+color = vec3( 1.-smoothstep(f,f+0.02,r) );
+```
+
+多边形
+
+```glsl
+vec3 color = vec3(0.0);
+float d = 0.0;
+
+// Remap the space to -1. to 1.
+st = st *2.-1.;
+
+// Number of sides of your shape
+int N = 3;
+
+// Angle and radius from the current pixel
+float a = atan(st.x,st.y)+PI;//0 -> PI
+float r = TWO_PI/float(N);
+
+// Shaping function that modulate the distance
+d = cos(floor(.5+a/r)*r-a)*length(st);
+//d = cos((.5-fract(a/r+.5))*r)*length(st);//同理
+
+color = vec3(1.0-smoothstep(.4,.41,d));
+// color = vec3(d);
+
+gl_FragColor = vec4(color,1.0);
 ```
 
