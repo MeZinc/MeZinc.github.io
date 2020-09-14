@@ -52,7 +52,7 @@ return brightness * mix (vec3(1.0), rgb, saturation);
 ```
 
 <center>
-    <img src="assets/001/RGB.png" width="200"/> 
+    <img src="assets/001/RGB.png" width="200"/>
     <img src="assets/001/RYB.png" width="200"/>
 </center>
 
@@ -77,14 +77,14 @@ void main() {
     vec2 st = gl_FragCoord.xy/u_resolution.xy;
 
     vec3 influenced_color = vec3(0.745,0.678,0.539);
-    
-    vec3 influencing_color_A = vec3(0.653,0.918,0.985); 
+
+    vec3 influencing_color_A = vec3(0.653,0.918,0.985);
     vec3 influencing_color_B = vec3(0.980,0.576,0.113);
-    
+
     vec3 color = mix(influencing_color_A,
                      influencing_color_B,
                      step(.5,st.x));
-    
+
     color = mix(color,
                influenced_color,
                rect(abs((st-vec2(.5,.0))*vec2(2.,1.)),vec2(.05,.125)));
@@ -180,7 +180,7 @@ d = step(.3, d)* step(d, .4);//获取距离0.3到0.4的部分（环）
 d = smoothstep(.3, .4, d) * smoothstep(.6, .5, d);//平滑的环。
 ```
 
-![smoothstepReverse](assets/001/smoothstepReverse.png) 
+![smoothstepReverse](assets/001/smoothstepReverse.png)
 
 
 
@@ -225,7 +225,7 @@ float a = atan(st.x,st.y)+PI;//0 -> PI
 float r = TWO_PI/float(N);
 
 // Shaping function that modulate the distance
-d = cos(floor(.5+a/r)*r-a)*length(st);
+d = cos(floor(.5+a/r)*r-a)*length(st);//根据极坐标角度划分为N个区域，每个区域
 //d = cos((.5-fract(a/r+.5))*r)*length(st);//同理
 
 color = vec3(1.0-smoothstep(.4,.41,d));
@@ -233,4 +233,3 @@ color = vec3(1.0-smoothstep(.4,.41,d));
 
 gl_FragColor = vec4(color,1.0);
 ```
-
