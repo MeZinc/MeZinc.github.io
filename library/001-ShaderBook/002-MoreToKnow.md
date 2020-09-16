@@ -20,3 +20,7 @@ It should now work.
 ## 待阅网页
 [https://www.mapbox.com/blog](https://www.mapbox.com/blog)  
 [https://mattdesl.svbtle.com/material-design-on-the-gpu](https://mattdesl.svbtle.com/material-design-on-the-gpu)
+
+[Markdown数学公式语法](https://www.jianshu.com/p/e74eb43960a1)
+
+[在线公式编辑器](https://latex.codecogs.com/eqneditor/editor.php)

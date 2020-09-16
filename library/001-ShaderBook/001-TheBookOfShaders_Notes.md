@@ -225,11 +225,127 @@ float a = atan(st.x,st.y)+PI;//0 -> PI
 float r = TWO_PI/float(N);
 
 // Shaping function that modulate the distance
-d = cos(floor(.5+a/r)*r-a)*length(st);//根据极坐标角度划分为N个区域，每个区域
+d = cos(floor(.5+a/r)*r-a)*length(st);//根据极坐标角度划分为N个区域，每个区域值从cos(π/n)到cos(π/2)再到cos(π/n)。这个值乘以极坐标的r,即可得到对应多边形的大小（顶点到边的长度，注意st映射到了(-1,1)）
 //d = cos((.5-fract(a/r+.5))*r)*length(st);//同理
 
-color = vec3(1.0-smoothstep(.4,.41,d));
+color = vec3(1.0-smoothstep(.4,.41,d));//由于精确度有限，若使用step,会出现线不够平滑的情况
 // color = vec3(d);
 
 gl_FragColor = vec4(color,1.0);
 ```
+
+![使用step的效果](assets/001/usingstep.png)
+
+![实现](assets/003/pixelspiritsdeck.png)
+
+## 二位矩阵 2D Matrices
+
+**注意**
+
+glsl的矩阵$M$对向量$v$的乘法,向量$v$被当做列向量，例如`mat2 * vec2`,写做$Mv$,实际计算的是$M^Tv$,
+$$
+M^Tv =
+\left[\matrix{
+m_{1,1} & m_{1,2} \\
+m_{2,1} & m_{2,2}
+}\right]^T
+\left[\matrix{v_1	\\v_2}\right]
+$$
+因此需要将推导得到的矩阵转置后再在代码中使用，例如：推导出平移矩阵$M=\left[\matrix{m_{1,1} & m_{1,2} \\m_{2,1} & m_{2,2}}\right]$,若直接使用则会出错，代码里必须使用$M^T$，假设得到的是$M'$。因此公式里写做$M'^T$，（这样公式是正确的），代码里直接使用$M'$，这种方式直观的出现了代码里要用的矩阵，同时保证公式正确（就是在写文档时要进行转置操作）。
+
+### 平移 Translate
+
+$$
+\begin{bmatrix}
+1 	& 0 	& 0 \\
+0 	& 1 	& 0 \\
+t_x & t_y 	& 1
+\end{bmatrix}^T
+\cdot
+\left[\matrix{ x \\ y \\ 1}\right]
+=
+\left[\matrix{ x + t_x \\ y + t_y \\ 1}\right]
+\tag 1
+$$
+
+```glsl
+mat3 translate(vec2 _t)
+{
+	return mat3(
+		1	,0		,0	,
+		0	,1		,0	,
+		_t.x,_t.y	,1
+	);
+}
+```
+
+
+
+### 旋转 Rotations
+
+$$
+\begin{bmatrix}
+\cos\theta & \sin\theta & 0 \\
+-\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{bmatrix}^T
+\cdot
+\left[\matrix{ x \\ y \\ 1}\right]
+=
+\left[\matrix{
+x \cdot \cos\theta - y \cdot \sin\theta \\
+x \cdot \sin\theta + y \cdot \cos \theta\\
+1
+}\right]
+\tag 2
+$$
+
+```glsl
+mat3 rotate2d(float _angle)
+{
+	return mat3(
+		cos(_angle)	,sin(_angle)	,0,
+		-sin(_angle)	,cos(_angle)	,0,
+		0			,0				,1
+	);
+}
+```
+
+注意这里的$\theta$，根据矩阵的推导，是逆时针的旋转角度。
+
+### 缩放 Scale
+
+$$
+\begin{bmatrix}
+S_x & 0 & 0 \\
+0 & S_y & 0 \\
+0 & 0 & 1
+\end{bmatrix}^T
+\cdot
+\left[\matrix{ x \\ y \\ 1}\right]
+=
+\left[\matrix{
+S_x \cdot x \\
+S_y \cdot y\\
+1
+}\right]
+\tag 2
+$$
+
+```glsl
+mat3 scale(vec2 _t)
+{
+	return mat3(
+		_t.x,0		,0	,
+		0	,_t.y	,0	,
+		0	,0		,1
+	);
+}
+```
+
+原文中对st应用变换矩阵，相当于操作坐标系而不改变画布，如平移`vec2(0.5)`,坐标系向右上平移0.5个单位，书中给出的图形（cross）就会更加接近原点，放大坐标系，图形就会相对缩小，顺时针旋转坐标系，图形相应逆时针旋转。
+
+[fake UI or HUD (heads up display)](https://www.pinterest.com/patriciogonzv/huds/)
+
+[例子](https://www.shadertoy.com/view/4s2SRt)
+

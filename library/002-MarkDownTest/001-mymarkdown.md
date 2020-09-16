@@ -40,3 +40,19 @@ cout<<a+b;
 
 换行怎么换  
 两个及以上空格再回车
+
+## 公式块(网页未支持)
+
+### 上标、下标与组合
+
+
+$$
+x_z,x^2  \\
+x^p_{ij} \\
+\ddots \cdots \vdots  \\ %省略号
+
+\begin{bmatrix}
+a & b \\
+c & d
+\end{bmatrix}
+$$
