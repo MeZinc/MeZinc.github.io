@@ -17,7 +17,7 @@ y = abs(x);   // 返回 x 的绝对值
 y = clamp(x,0.0,1.0); // 把 x 的值限制在 0.0 到 1.0
 y = min(0.0,x);   // 返回 x 和 0.0 中的较小值
 y = max(0.0,x);   // 返回 x 和 0.0 中的较大值  
-y = step(0.5,x);// Step will return 0.0 unless the value is over 0.5,in that case it will return 1.0
+y = step(0.5,x);//  x<0.5 return 0.0 ,x>=0.5 return 1.0
 y = smoothstep(0.1,0.9,x);//Smooth interpolation between 0.1 and 0.9
 ```
 
@@ -149,6 +149,14 @@ float rect_floorVersion(vec2 size, vec2 center, in vec2 st)
 	vec2 tr = 1 - floor(st + vec2(1-trp.x,1-trp.y));
 	return bl.x * bl.y * tr.x * tr.y;
 }
+//原文中提供的画方形函数
+float box(vec2 _st, vec2 _size, float _smoothEdges){
+    _size = vec2(0.5)-_size*0.5;
+    vec2 aa = vec2(_smoothEdges*0.5);
+    vec2 uv = smoothstep(_size,_size+aa,_st);
+    uv *= smoothstep(_size,_size+aa,vec2(1.0)-_st);
+    return uv.x*uv.y;
+}
 ```
 
 ### 圆形
@@ -239,6 +247,8 @@ gl_FragColor = vec4(color,1.0);
 ![实现](assets/003/pixelspiritsdeck.png)
 
 ## 二位矩阵 2D Matrices
+
+书中之前的例子里都在归一化坐标后使用了`st.y *= u_resolution.y/u_resolution.x;`，这样可以使绘制的图形比例不随分辨率比例变化而变化。
 
 **注意**
 
@@ -348,4 +358,160 @@ mat3 scale(vec2 _t)
 [fake UI or HUD (heads up display)](https://www.pinterest.com/patriciogonzv/huds/)
 
 [例子](https://www.shadertoy.com/view/4s2SRt)
+
+**YUV**和**RGB**色彩空间通过矩阵相互转换。
+
+[https://en.wikipedia.org/wiki/YUV](https://en.wikipedia.org/wiki/YUV)
+
+
+
+## Patterns
+
+### Tile
+
+平铺
+
+```glsl
+vec2 tile(vec2 _st, float _zoom)
+{
+    _st *= _zoom;
+    return fract(_st);
+}
+```
+
+ [Scottish Tartan Patterns](https://www.google.com/search?q=scottish+patterns+fabric&tbm=isch&tbo=u&source=univ&sa=X&ei=Y1aFVfmfD9P-yQTLuYCIDA&ved=0CB4QsAQ&biw=1399&bih=799#tbm=isch&q=Scottish+Tartans+Patterns)
+
+
+
+练习：
+
+2.   
+
+![img](https://thebookofshaders.com/09/diamondtiles-long.png)
+
+```glsl
+// Author MeZinc - 2020
+// Title: Diamond Tiles
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#define PI 3.14159265359
+#define SQRT2 1.41421
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+float d1(in float angle,in float r)
+{
+	return r * cos(angle);
+}
+
+float d2(in float angle,in float r,in float stAn)
+{
+	return r* cos(stAn) / cos(PI/4.0 - stAn)* cos(angle);
+}
+
+float theta(in float x,in float top,in float r)//生成八边形
+{
+	float f2 =PI / 2. * abs(fract(x * 2. / PI + .5) - .5);
+	f2 = clamp(f2,0.0, top);
+	float pct = step(top ,f2);
+	float f3 =  PI / 2. * abs((fract(x * 2. / PI)-0.5));
+	return  pct * d2(f3,r,top) + (1. - pct) * d1(f2,r);
+}
+
+void main() {
+	vec2 st = gl_FragCoord.xy / u_resolution;
+    st.y *= u_resolution.y/u_resolution.x;
+	
+	st = fract(10. * st);
+	
+	vec2 pos = st - 0.5;
+	
+	float a = atan(pos.y , pos.x);
+	float r = length(pos) * 2.;
+	
+	float set_angle = PI / 6.0;
+	float sideLength = 1.;
+	
+	vec3 color = vec3(theta(a,set_angle,r));
+	color  =1. - vec3(
+        smoothstep(sideLength -0.051 , sideLength - 0.05,theta(a,set_angle,r)) *
+        smoothstep(sideLength + 0.001, sideLength ,theta(a,set_angle,r))
+    );
+    
+	gl_FragColor = vec4(color,1.0);
+}
+```
+原文解：
+
+```glsl
+// Author @patriciogv ( patriciogonzalezvivo.com ) - 2015
+// Title: Diamond Tiles
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#define PI 3.14159265358979323846
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+vec2 rotate2D(vec2 _st, float _angle){
+    _st -= 0.5;
+    _st =  mat2(cos(_angle),-sin(_angle),
+      sin(_angle),cos(_angle)) * _st;
+    _st += 0.5;
+    return _st;
+}
+
+vec2 tile(vec2 _st, float _zoom){
+    _st *= _zoom;
+    return fract(_st);
+}
+
+float box(vec2 _st, vec2 _size, float _smoothEdges){
+    _size = vec2(0.5)-_size*0.5;
+    vec2 aa = vec2(_smoothEdges*0.5);
+    vec2 uv = smoothstep(_size,_size+aa,_st);
+    uv *= smoothstep(_size,_size+aa,vec2(1.0)-_st);
+    return uv.x*uv.y;
+}
+
+vec2 offset(vec2 _st, vec2 _offset){
+    vec2 uv;
+
+    if(_st.x>0.5){
+        uv.x = _st.x - 0.5;
+    } else {
+        uv.x = _st.x + 0.5;
+    }
+
+    if(_st.y>0.5){
+        uv.y = _st.y - 0.5;
+    } else {
+        uv.y = _st.y + 0.5;
+    }
+
+    return uv;
+}
+
+void main(void){
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    st.y *= u_resolution.y/u_resolution.x;
+
+    st = tile(st,10.);
+
+    vec2 offsetSt = offset(st,vec2(0.5));
+
+    st = rotate2D(st,PI*0.25);
+
+    vec3 color = vec3( box(offsetSt,vec2(0.95),0.01) - box(st,vec2(0.3),0.01) + 2.*box(st,vec2(0.2),0.01) );
+
+    gl_FragColor = vec4(color,1.0);
+}
+```
 
