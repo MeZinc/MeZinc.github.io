@@ -24,3 +24,6 @@ It should now work.
 [Markdown数学公式语法](https://www.jianshu.com/p/e74eb43960a1)
 
 [在线公式编辑器](https://latex.codecogs.com/eqneditor/editor.php)
+
+[界面参考](https://www.pinterest.co.kr/patriciogonzv/huds/)
+[Pixelero的博客](https://pixelero.wordpress.com/)

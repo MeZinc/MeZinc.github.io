@@ -55,8 +55,9 @@ return brightness * mix (vec3(1.0), rgb, saturation);
     <img src="assets/001/RGB.png" width="200"/>
     <img src="assets/001/RYB.png" width="200"/>
 </center>
-
 ## <u>*Interaction of Color*</u> 的例子
+
+**颜色混合函数**`mix(color1,color2,pct)`
 
 ```glsl
 #ifdef GL_ES
@@ -512,6 +513,211 @@ void main(void){
     vec3 color = vec3( box(offsetSt,vec2(0.95),0.01) - box(st,vec2(0.3),0.01) + 2.*box(st,vec2(0.2),0.01) );
 
     gl_FragColor = vec4(color,1.0);
+}
+```
+
+3.   
+
+   ![Vector Pattern Scottish Tartan By Kavalenkava](https://thebookofshaders.com/09/tartan.jpg)
+
+```glsl
+// Author:MeZinc
+// Title:Scottish Tartan Patterns
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#define PI 3.14159265359
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+vec2 tile(vec2 st, float zoom){
+    st *= zoom;
+    return fract(st);
+}
+
+float strip_horizontal(in float sty, in float width, in float height,in float sp, in vec2 _st,in float offset)
+{
+	float total = width + sp;
+	
+	float fx = mod(_st.x - width * floor((_st.y - sty)/width + offset),total);
+	fx = step(fx, sp) ;
+    
+	float fy = step(sty,_st.y) * step(_st.y,sty+height) ;
+	return fx *fy;
+}
+float strip_vertical(in float sty, in float width, in float height,in float sp, in vec2 _st,in float offset)
+{
+	float total = width + sp;
+	
+	float fx = mod(_st.y - width * floor((_st.x - sty + offset)/width),total);
+	fx =1. - step(fx, sp) ;
+    
+	float fy = step(sty,_st.x) * step(_st.x,sty+height) ;
+	return fx *fy;
+}
+vec2 rotate2D(vec2 _st, float _angle){
+    _st -= 0.5;
+    _st =  mat2(cos(_angle),-sin(_angle),
+                sin(_angle),cos(_angle)) * _st;
+    _st += 0.5;
+    return _st;
+}
+float basestyle(in vec2 _st)
+{
+    _st = tile(_st,30.);
+    vec2 uv = smoothstep(1. / 3. - 0.02,1. / 3. - 0.01, _st) ;/
+    vec2 uv2 =step(1. / 3. , _st) * smoothstep(0.99, 0.98, _st);
+    vec2 uv3 = smoothstep(1. / 3.- 0.02, 1. / 3. - 0.01, _st) * smoothstep(1. / 3.- 0.02, 1. / 3. - 0.01, 1. - _st);
+    
+    float t1 = clamp(uv.x*uv.y - uv2.x*uv2.y -uv3.x*uv3.y,0.,1.);
+    
+    vec2 uv4 = step(1. / 3. - 0.02, 1. - _st);
+    vec2 uv5 = smoothstep(1. / 3. - 0.01, 1. / 3., 1. - _st);
+    vec2 uv6 = smoothstep(1. / 3., 1./3. - 0.01,_st);
+    
+    t1 = clamp(t1 + uv4.x * uv4.y - uv5.x * uv5.y - uv6.x * uv6.y, 0., 1.);
+    vec2 uv7 = smoothstep(1. / 3., 1. / 3. - 0.01, _st);
+    uv7 = 1. -step(1./3.,_st);
+    vec2 uv8 = smoothstep(1. / 3. - 0.01, 1./ 3. - 0.02, _st);
+    t1 = t1 + uv7.x * uv7.y - uv8.x * uv8.y;
+    t1= clamp(t1,0.,1.);
+    return 1. - t1;
+}
+
+void main() {
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    st.x *= u_resolution.x/u_resolution.y;
+    
+    st -= vec2(0.370,-0.220);
+    st = rotate2D(st,PI/6.);
+    st = tile(st,1.736);
+
+    vec3 color = vec3(0.5);
+    
+    color = basestyle(st)*vec3(0.654,0.676,0.705);
+    
+    color = mix(color, vec3(1.0,0.,0.), strip_horizontal(0., 0.04 / 8., 0.02, 0.12 / 8.,st, 0.));
+    color = mix(color, vec3(0.0), strip_horizontal(0.4, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    color = mix(color, vec3(0.9), strip_horizontal(0.45, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    color = mix(color, vec3(0.0), strip_horizontal(0.5, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    color = mix(color, vec3(0.9), strip_horizontal(0.55, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    color = mix(color, vec3(0.0), strip_horizontal(0.6, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    
+    color = mix(color, vec3(1.0,0.,0.), strip_vertical(0., 0.04 / 8., 0.046, 0.12 / 8.,st, 0.));
+    color = mix(color, vec3(0.0), strip_vertical(0.4, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.1 / 6.));
+    color = mix(color, vec3(0.9), strip_vertical(0.45, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    color = mix(color, vec3(0.0), strip_vertical(0.5, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.1 / 6.));
+    color = mix(color, vec3(0.9), strip_vertical(0.55, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.));
+    color = mix(color, vec3(0.0), strip_vertical(0.6, 0.05 / 6., 0.05, 0.1 / 6.,st, 0.1 / 6.));
+    gl_FragColor = vec4(color,1.0);
+}
+```
+
+存在的问题：
+
++ 浮点数精度问题，背景纹理不清晰（应该是）
++ 条纹样式固定（主要懒得再改了）
+
+尽管没有还原，本节知识的内容已经理解了，精度问题还要继续阅读看是否有解，或者直接用`gl_FragCoord`，而不进行归一化来进行计算。
+
+### 偏移Offset
+
+前一节练习代码中的 条纹（strip）函数 已经使用过了类似技巧了。
+
+练习：Marching Dots
+
+```glsl
+// Author:MeZinc
+// Title:marching dots
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+float func(float x)
+{
+	float f1 = step(1.,mod(x,2.));
+	float f2 = floor(x / 2.);
+	return (x - f2)*(1.-f1) +floor((x+1.)/2.)* f1;
+}
+
+vec2 balltile(vec2 _st, float zoom){
+    float stepDis = 1.0 / zoom;
+    _st *= zoom ;
+    
+    vec2 speed =2.0 * (step(1.0, mod(vec2(_st.y,_st.x), 2.))- 0.5);
+    
+    float f1 = step(1.,mod(u_time,2.));
+	 float f2 = floor(u_time / 2.);
+	 float y =(u_time - f2)*(1.-f1) +floor((u_time+1.)/2.)* f1;
+    
+    float f3 = mod( speed.x * func(u_time), 1.);
+    
+    float f4 = mod( speed.y * func(u_time + 1.), 1.);
+    _st += vec2(f3,f4);
+    
+    return fract(_st);
+}
+
+float circle(vec2 _st, float _radius){
+    vec2 pos = vec2(0.5)-_st;
+    return 1. - smoothstep(1.0-_radius,1.0-_radius+_radius*0.2,1.-dot(pos,pos)*3.14);
+}
+
+void main() {
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    st.x *= u_resolution.x/u_resolution.y;
+
+    st = balltile(st,10.);
+    vec3 color = vec3(st,0.0);
+    
+    color = circle(st, 0.25) * vec3(1.);
+    //color = vec3(st,0.0);
+
+    gl_FragColor = vec4(color,1.0);
+}
+```
+
+原文使用了分支（if）
+
+###  Truchet Tiles
+
+Truchet是这个样式的提出提出者，详见[https://en.wikipedia.org/wiki/Truchet_tiles](https://en.wikipedia.org/wiki/Truchet_tiles)。[其它样例](https://www.pinterest.co.kr/zaueqh/truchet-tiling/)
+
+### 更多样式
+
+构造样式就是寻找最小可重复元素。阅读[decorative](https://archive.org/stream/traditionalmetho00chririch#page/130/mode/2up)会有更多发现。
+
+
+
+# Generative designs
+
+### 随机
+
+从`y = fract(sin(x) * 1.0)`开始，系数到100000.0的过程。
+
+![](assets/001/random.gif)  
+
+伪随机，而且分布中间集中边缘分散。
+
+### 二维随机
+
+使用了dot来使二维向量转为了一维的float值
+
+```glsl
+float random (vec2 st) 
+{
+    return fract(sin(dot(st.xy,
+                         vec2(12.9898,78.233)))*
+        43758.5453123);
 }
 ```
 
