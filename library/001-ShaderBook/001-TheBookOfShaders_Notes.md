@@ -366,6 +366,10 @@ mat3 scale(vec2 _t)
 
 
 
+[一个参考例子](https://thebookofshaders.com/edit.php?log=160909065147)
+
+
+
 ## Patterns
 
 ### Tile
@@ -708,6 +712,12 @@ Truchet是这个样式的提出提出者，详见[https://en.wikipedia.org/wiki/
 
 伪随机，而且分布中间集中边缘分散。
 
+```glsl
+float random (in float x) { return fract(sin(x)*1e4); }
+```
+
+
+
 ### 二维随机
 
 使用了dot来使二维向量转为了一维的float值
@@ -719,5 +729,292 @@ float random (vec2 st)
                          vec2(12.9898,78.233)))*
         43758.5453123);
 }
+```
+
+### 应用
+
+```glsl
+st *= 10.0;
+vec3 ipos = floor(st);
+vec3 color = vec3(random(ipos));//10*10的随机序列;可以将这个序列分别应用到10*10的TruchePattern上，random返回值归化为4个值作为每个小块的旋转角度（0,90,180，270）
+```
+
+```glsl
+//例如文中使用的用来Tile的函数对每个部分进行了旋转。（因为只有4个角度，没有用旋转矩阵，直接应用了对应角度的转换方法）
+vec2 truchetPattern(in vec2 _st, in float _index){
+    _index = fract(((_index-0.5)*2.0));
+    if (_index > 0.75) {
+        _st = vec2(1.0) - _st;
+    } else if (_index > 0.5) {
+        _st = vec2(1.0-_st.x,_st.y);
+    } else if (_index > 0.25) {
+        _st = 1.0-vec2(1.0-_st.x,_st.y);
+    }
+    return _st;
+}
+```
+
+练习：
+
+1. Ikeda Data Stream：这个练习中每行的随机分布控制没有做到，最后参考了原文代码（pattern函数中的`random(100.+p*.00001)`部分）；原文数据计算安排更合理，我写的有重复计算；原文对颜色rgb三个通道的坐标间有一个极小的offset。
+
+```glsl
+// Author:MeZinc
+// Title:Ikeda Data Stream
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+float random (in float x) { return fract(sin(x) * 1e4); }
+float random (in vec2 st) 
+{
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+float randomserie(in vec2 _st, vec2 freq, float t,in float pct)
+{
+    _st *= freq;
+    vec2 p = floor( _st- vec2(t,0.));
+	return step(pct,random(100.+p*.00001) + 0.5 * random(p.x));
+}
+
+float pattern(vec2 st, vec2 v, float t) {
+    vec2 p = floor(st+v);
+    return step(t, random(100.+p*.00001)+random(p.x)*0.5 );
+}
+
+void main() {
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    st.x *= u_resolution.x/u_resolution.y;
+    vec2 mousePositon = u_mouse / u_resolution;
+    
+    float col = 50.0;
+
+    vec3 color = vec3(0.0);
+	 vec2 freq = vec2(100.0,col);
+    float streamingSpeed = 30.0 * (1. + random(floor( col * st.y )) );
+    
+    
+	 float t = floor(u_time * streamingSpeed);
+    
+	 color =vec3(randomserie(st, freq, t,  mousePositon.x+0.5));
+    
+    //color = vec3(pattern(st*freq, vec2(t,0.), mousePositon.x+0.5));
+    color *= step(0.2, fract(st.y * col));
+
+    gl_FragColor = vec4(1. - color,1.0);
+}
+
+```
+
+2. DeFrag ：打字出现，鼠标x与密度关联，y与出现速度关联，方向一行左一行右，运动速度也一致.效果未实现完。Margin、smooth和threshold部分之后还要再分析补充。
+
+   ```glsl
+   // Author:MeZinc
+   // Title:Ikeda Data Stream
+   
+   #ifdef GL_ES
+   precision mediump float;
+   #endif
+   
+   uniform vec2 u_resolution;
+   uniform vec2 u_mouse;
+   uniform float u_time;
+   
+   float random (in float x) { return fract(sin(x) * 1e4); }
+   float random (in vec2 st) 
+   {
+       return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+   }
+   
+   void main() {
+       vec2 st = gl_FragCoord.xy/u_resolution.xy;
+       st.x *= u_resolution.x/u_resolution.y;
+       vec2 mousePositon = u_mouse / u_resolution;
+       
+   	 vec2 grid = vec2(100.0,50.0);
+       vec3 color = vec3(1.0);
+       
+       st *= grid;
+       
+       vec2 ipos = floor(st);
+       vec2 fpos = fract(st);
+       
+       float speed = 2. * ( step(1.0 ,mod(ipos.y , 2.0)) - 0.5) * floor(random(ipos.y+1.0) * u_time *15.0) ;
+       
+       color = step(mousePositon.x,random(ipos + vec2(speed,0.0))  ) * vec3(1.0);
+       
+       float type = step(0.0,mod(u_time * grid.x * mousePositon.y * 10., grid.x * grid.y) - (ipos.x +(grid.y - ipos.y)*grid.x)) ;
+       color *=type;
+       
+       //color = vec3(pattern(st*freq, vec2(t,0.), mousePositon.x+0.5));
+       color *= step(0.2, fpos.y);
+   
+       gl_FragColor = vec4(1. - color,1.0);
+   }
+   ```
+
+   
+
+```glsl
+// Author @patriciogv - 2015
+// Title: DeFrag
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+float random (in float x) { return fract(sin(x)*1e4); }
+float random (in vec2 _st) { return fract(sin(dot(_st.xy, vec2(12.9898,78.233)))* 43758.5453123);}
+
+void main() {
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    st.x *= u_resolution.x/u_resolution.y;
+
+    // Grid
+    vec2 grid = vec2(100.0,50.);
+    st *= grid;
+
+    vec2 ipos = floor(st);  // integer
+
+    vec2 vel = floor(vec2(u_time*10.)); // time
+    vel *= vec2(-1.,0.); // direction
+
+    vel *= (step(1., mod(ipos.y,2.0))-0.5)*2.; // Oposite directions
+    vel *= random(ipos.y); // random speed
+
+    // 100%
+    float totalCells = grid.x*grid.y;
+    float t = mod(u_time*max(grid.x,grid.y)+floor(1.0+u_time*u_mouse.y),totalCells);
+    vec2 head = vec2(mod(t,grid.x), floor(t/grid.x));
+
+    vec2 offset = vec2(0.1,0.);
+
+    vec3 color = vec3(1.0);
+    color *= step(grid.y-head.y,ipos.y);                                // Y
+    color += (1.0-step(head.x,ipos.x))*step(grid.y-head.y,ipos.y+1.);   // X
+    color = clamp(color,vec3(0.),vec3(1.));
+
+    // Assign a random value base on the integer coord
+    color.r *= random(floor(st+vel+offset));
+    color.g *= random(floor(st+vel));
+    color.b *= random(floor(st+vel-offset));
+
+    color = smoothstep(0.,.5+u_mouse.x/u_resolution.x*.5,color*color); // smooth
+    color = step(0.5+u_mouse.x/u_resolution.x*0.5,color); // threshold
+
+    //  Margin
+    color *= step(.1,fract(st.x+vel.x))*step(.1,fract(st.y+vel.y));
+
+    gl_FragColor = vec4(1.0-color,1.0);
+}
+```
+
+
+
+## 噪声 Noise
+
+*smooth randomness*
+
+```glsl
+float i = floor(x);  // integer
+float f = fract(x);  // fraction
+
+y = rand(i); //rand() is described in the previous chapter
+y = mix(rand(i), rand(i + 1.0), f);
+y = mix(rand(i), rand(i + 1.0), smoothstep(0.,1.,f));
+
+float u = f * f * (3.0 - 2.0 * f ); // custom cubic curve
+y = mix(rand(i), rand(i + 1.0), u); // using it in the interpolation
+```
+
+
+
+```glsl
+float noise(float x)
+{
+    float i = floor(x);
+    float u = f * f * (3.0 - 2.0 * f );
+    return mix(rand(i), rand(i + 1.0), u);
+}
+```
+
+二维噪声的插值（4个值）
+
+```glsl
+// By Morgan McGuire @morgan3d, http://graphicscodex.com
+// https://www.shadertoy.com/view/4dS3Wd
+float hash(float p) 
+{ 
+    p = fract(p * 0.011); 
+    p *= p + 7.5; 
+    p *= p + p; 
+    return fract(p); 
+}
+float hash(vec2 p)
+{
+    vec3 p3 = fract(vec3(p.xyx) * 0.13); 
+    p3 += dot(p3, p3.yzx + 3.333); 
+ 	return fract((p3.x + p3.y) * p3.z); 
+}
+float noise(vec2 x) {
+    vec2 i = floor(x);
+    vec2 f = fract(x);
+
+	// Four corners in 2D of a tile
+	float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+
+    // Simple 2D lerp using smoothstep envelope between the values.
+	// return vec3(mix(mix(a, b, smoothstep(0.0, 1.0, f.x)),
+	//			mix(c, d, smoothstep(0.0, 1.0, f.x)),
+	//			smoothstep(0.0, 1.0, f.y)));
+
+	// Same code, with the clamps in smoothstep and common subexpressions
+	// optimized away.
+    // Cubic Hermine Curve.  Same as SmoothStep()
+    vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+```
+
+练习：[Mark Rothko](http://en.wikipedia.org/wiki/Mark_Rothko) painting：写了一个在rect边缘应用噪声的函数
+
+```glsl
+float noise_rect_stepVersion(vec2 size, vec2 center,in vec2 st,float noiseScale)
+{
+	vec2 blp = center - size/2.0;
+	vec2 trp = vec2(1.0) - center - size/2.0;
+	vec2 bl = step(noise(st*ns) * 0.01 + blp ,st );//0.01是边缘程度
+	vec2 tr = step(noise(st*ns) * 0.01 + trp ,1 - st);
+	return bl.x * bl.y * tr.x * tr.y;
+}
+```
+
+或者直接在调用以前的rect函数，size根据st变化,如下
+
+```glsl
+float noiseSize = 100;//噪声粒度
+float edgeLenth = 0.01;//噪声边缘大小
+vec2 rectSize = 0.5;
+vec2 rectCenter = 0.5;
+
+vec3 color = vec3(1.0);
+
+color = noise_rect_stepVersion(
+    vec2(noise(st * noiseSize) * edgeLenth) + rectSize,
+    rectCenter,
+    st
+) * color;
 ```
 

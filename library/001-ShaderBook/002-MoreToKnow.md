@@ -27,3 +27,11 @@ It should now work.
 
 [界面参考](https://www.pinterest.co.kr/patriciogonzv/huds/)
 [Pixelero的博客](https://pixelero.wordpress.com/)
+
+[Inigo Quilez](https://iquilezles.org/)
+
+[Nicolas Barradeau](http://barradeau.com/blog/)    [Nicolas Barradeau youpi](https://youpi.io/)
+
+[Patricio Gonzalez Vivo](http://patriciogonzalezvivo.com/)
+
+[fun-with-graphics 学习目录](https://gitee.com/LightInfection/fun-with-graphics)
