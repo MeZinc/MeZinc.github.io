@@ -18,7 +18,7 @@ Change: proxy.system=true to proxy.system=false
 It should now work.
 
 ## 待阅网页
-[https://www.mapbox.com/blog](https://www.mapbox.com/blog)  
+[https://www.mapbox.com/blog](https://www.mapbox.com/blog)
 [https://mattdesl.svbtle.com/material-design-on-the-gpu](https://mattdesl.svbtle.com/material-design-on-the-gpu)
 
 [Markdown数学公式语法](https://www.jianshu.com/p/e74eb43960a1)
@@ -35,3 +35,9 @@ It should now work.
 [Patricio Gonzalez Vivo](http://patriciogonzalezvivo.com/)
 
 [fun-with-graphics 学习目录](https://gitee.com/LightInfection/fun-with-graphics)
+
+## 噪声
+
+[improve noise](assets/001/paper445_improvenoise.pdf)插值曲线改进
+
+[simplexnoise.pdf](assets/001/simplexnoise.pdf) Ian McEwan的论文，simplex noise算法再GLSL中的应用。

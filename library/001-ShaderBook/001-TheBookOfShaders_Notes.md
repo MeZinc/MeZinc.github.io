@@ -1018,3 +1018,109 @@ color = noise_rect_stepVersion(
 ) * color;
 ```
 
+### 生成设计的噪声应用
+
+之前的噪声都是使用的**值噪声**（**Value Noise**），即通过一维、二维插值得到的，有个非常明显的特点就是，方块感非常严重，如下 [value noise](https://www.shadertoy.com/view/lsf3WH) 
+
+![Inigo Quilez - Value Noise](https://thebookofshaders.com/11/value-noise.png)
+
+1985年[Ken Perlin](https://mrl.nyu.edu/~perlin/)开发出了**Gradient Noise**，使用了一个二维随机函数返回一个二维向量`vec2`生成的*gradiant*来取代固定的`float`值来进行插值。每个点上生成随机二维向量，这个向量和st值点乘即可得到随st变化而渐变的*gradiant*。 [gradient noise](https://www.shadertoy.com/view/XdXGW8)
+
+![Inigo Quilez - Gradient Noise](https://thebookofshaders.com/11/gradient-noise.png)
+
+```glsl
+vec2 random2(vec2 st){
+    st = vec2( dot(st,vec2(127.1,311.7)),
+              dot(st,vec2(269.5,183.3)) );
+    return -1.0 + 2.0*fract(sin(st)*43758.5453123);
+}
+
+// Gradient Noise by Inigo Quilez - iq/2013
+// https://www.shadertoy.com/view/XdXGW8
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+
+    vec2 u = f*f*(3.0-2.0*f);
+
+    return mix( mix( dot( random2(i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
+                     dot( random2(i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
+                mix( dot( random2(i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
+                     dot( random2(i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
+}
+
+    color = vec3( noise(pos)*.5+.5 );
+```
+
+应用：
+
+[improve noise](assets/001/paper445_improvenoise.pdf)插值曲线改进
+
+[simplexnoise](assets/001/simplexnoise.pdf) Ian McEwan的论文，simplex noise算法再GLSL中的应用。
+
+1. Wood texture：将噪声应用在画布旋转上，由于噪声图相邻位置平滑过渡，相邻位置的旋转角度也是连续的
+
+![Wood texture](https://thebookofshaders.com/11/wood-long.png)
+
+```glsl
+pos = rotate2d( noise(pos) ) * pos; // rotate the space
+pattern = lines(pos,.5); // draw lines
+```
+
+2. 距离场:直接将噪声当做距离场
+
+```glsl
+color += smoothstep(.15,.2,noise(st*10.)); // Black splatter
+color -= smoothstep(.35,.4,noise(st*10.)); // Holes on splatter
+```
+
+3. 形状动画：平移噪声图，再将噪声按坐标应用，形成了连续的动画
+
+```glsl
+float noiseOnEdge =  sin(a * 50.) * noise(pos  + u_time * 0.2) ;
+vec3 color = vec3(circle(d , 0.39 + noiseOnEdge) - circle(d , 0.4 + noiseOnEdge));
+```
+
+4. 位移动画： 平移噪声图，选取固定两点值作为位移向量，这样就能得到随机连续变化的位移
+
+
+
+## Celluar Noise
+
+[worley_Celluar_Texture_basic_function.pdf](assets/001/worley_Celluar_Texture_basic_function.pdf)
+
+一定数量的特征点，对每个像素存下该像素到所有特征点的最短距离
+
+```glsl
+st*=10.0;
+vec2 ipos = floor(st);
+vec2 fpos = fract(st);
+	
+//point = random(ipos);//特征点
+	 
+float dist = 100.;
+for (int y= -1; y <= 1; y++) 
+{
+    for (int x= -1; x <= 1; x++) 
+    {
+        // Neighbor place in the grid
+        vec2 neighbor = vec2(float(x),float(y));
+        vec2 point = ipos + neighbor;
+		point = random2(point);
+		point = 0.5 + 0.5 * sin(point*2*3.14 + u_time);
+		vec2 diff = neighbor + point - fpos;
+		dist = min(length(diff),dist);
+		
+		// if( dist < m_dist ) 
+        // {
+        // 		m_dist = dist;
+        // 		m_point = point;
+        // }
+		//可以存储最近的point
+    }
+}
+
+vec3 color = vec3(dist);
+```
+
+[GLSL-cellular-notes.pdf](assets/001/GLSL-cellular-notes.pdf)一个优化算法，仅仅对一个 2x2 的矩阵作遍历（而不是 3x3 的矩阵）。这显著地减少了工作量，但是会在网格边缘制造人工痕迹。
