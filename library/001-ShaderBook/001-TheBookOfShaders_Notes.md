@@ -1,6 +1,6 @@
 # The Book of Shaders
 
-中文翻译版真的不靠谱，还是看原文同时查找相关资料理解比较准确和直接
+中文翻译版有的不太靠谱，用作参考的同时还是看原文同时查找相关资料理解比较准确和直接
 
 
 ## Shaping functions
@@ -1123,4 +1123,127 @@ for (int y= -1; y <= 1; y++)
 vec3 color = vec3(dist);
 ```
 
-[GLSL-cellular-notes.pdf](assets/001/GLSL-cellular-notes.pdf)一个优化算法，仅仅对一个 2x2 的矩阵作遍历（而不是 3x3 的矩阵）。这显著地减少了工作量，但是会在网格边缘制造人工痕迹。
+一个优化算法，仅仅对一个 2x2 的矩阵作遍历（而不是 3x3 的矩阵）。这显著地减少了工作量，但是会在网格边缘制造人工痕迹。
+
+ [Inigo Quilez wrote an article on how to make precise Voronoi borders](http://www.iquilezles.org/www/articles/voronoilines/voronoilines.htm).2014 年，他写了一篇非常漂亮的文章，提出一种他称作为 [voro-noise](http://www.iquilezles.org/www/articles/voronoise/voronoise.htm) 的噪声。
+
+## Fractal Brownian Motion 分形布朗
+
+将一个噪声按一定数值**提升频率**（**lacunarity**），缩小**幅度**（**gain**）,连续叠加一定**次数**（**octaves**）的方法称为分形布朗**fBM**。下面是个简单实现的公式：
+$$
+fBM(x)=\sum_{i=0}^{octaves}A \cdot gain^{i} \cdot f(x*lancunarity^i)
+$$
+很有分形特点，细节增加，分为不同层次，都是相似的，如果无限叠加下去就会得到数学中真正的分形图像。
+
+二维分形布朗：
+
+```glsl
+
+#define OCTAVES 6  
+
+float fbm(in vec2 st)
+{
+    float amplitude = 0.5;
+    float frequency = 1.0;
+
+    float value = 0.0;
+
+    float gain = 0.5;
+    float lacunarity = 2.0;
+
+    for(int i = 0; i < OCTAVES ; i++)
+    {
+        value += amplitude * noise(frequency * st);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    return value;
+}
+```
+
+这种噪声很适合生成山脉地形，因为现实中大范围的山脉受到气候侵蚀也有这种自相似性。 read [this great article by Inigo Quiles about advanced noise](http://www.iquilezles.org/www/articles/morenoise/morenoise.htm).
+
+[ "Texturing and Modeling: a Procedural Approach" (3rd edition), by Kenton Musgrave](assets/001/Texturing and Modeling - A Procedural Approach.pdf)
+
+> **Turbulence**. It's essentially an fBm, but constructed from the absolute value of a signed noise to create sharp valleys in the function.
+
+湍流，这个液体流动感觉不像湍流那种。不过意思get了。
+
+```glsl
+for (int i = 0; i < OCTAVES; i++) {
+    value += amplitude * abs(snoise(st));//simplex noise 文中使用的snoise来自下面链接
+    st *= 2.;
+    amplitude *= .5;
+}
+```
+
+> **Ridge**, where the sharp valleys are turned upside down to create sharp ridges instead:
+
+山脊
+
+```glsl
+    n = abs(n);     // create creases
+    n = offset - n; // invert so creases are at top
+    n = n * n;      // sharpen creases
+```
+
+[ashima/webgl-noise](https://github.com/ashima/webgl-noise/wiki)
+
+之前每部分噪声相乘而非相加。前一个噪声来缩放后一个噪声（multifractals），参考资料[ "Texturing and Modeling: a Procedural Approach" (3rd edition), by Kenton Musgrave](assets/001/Texturing and Modeling - A Procedural Approach.pdf)
+
+### Domain Warping 域翘曲
+
+[Inigo Quiles wrote this other fascinating article](http://www.iquilezles.org/www/articles/warp/warp.htm) 使用fBM来扭曲fBM，Warping( pinch an object, strech it, twist it, bend it, make it thicker or apply [any deformation you want](https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm).)这翻译好高端。
+
+> A useful tool for this is to displace the coordinates with the derivative (gradient) of the noise.
+
+ [A famous article by Ken Perlin and Fabrice Neyret called "flow noise"](http://evasion.imag.fr/Publications/2001/PN01/)
+
+> Some modern implementations of Perlin noise include a variant that computes both the function and its analytical gradient. If the "true" gradient is not available for a procedural function, you can always compute finite differences to approximate it, although this is less accurate and involves more work.
+
+finite differences有限差分法？(这段还不懂，例如 额外计算analytical gradient是什么有什么用处，"true" gradient 指的什么compute finite differences如何计算，有待后续学习来补充)
+
+[https://thebookofshaders.com/edit.php#12/2d-cnoise-2x2.frag](https://thebookofshaders.com/edit.php#12/2d-cnoise-2x2.frag)中也有返回f1,f2，参考文章在前面有
+
+```glsl
+// Cellular noise, returning F1 and F2 in a vec2.
+// Speeded up by using 2x2 search window instead of 3x3,
+// at the expense of some strong pattern artifacts.
+// F2 is often wrong and has sharp discontinuities.
+// If you need a smooth F2, use the slower 3x3 version.
+// F1 is sometimes wrong, too, but OK for most purposes.
+vec2 cellular2x2(vec2 P) {
+	#define K 0.142857142857 // 1/7
+	#define K2 0.0714285714285 // K/2
+	#define jitter 0.8 // jitter 1.0 makes F1 wrong more often
+	vec2 Pi = mod(floor(P), 289.0);
+ 	vec2 Pf = fract(P);
+	vec4 Pfx = Pf.x + vec4(-0.5, -1.5, -0.5, -1.5);
+	vec4 Pfy = Pf.y + vec4(-0.5, -0.5, -1.5, -1.5);
+	vec4 p = permute(Pi.x + vec4(0.0, 1.0, 0.0, 1.0));
+	p = permute(p + Pi.y + vec4(0.0, 0.0, 1.0, 1.0));
+	vec4 ox = mod(p, 7.0)*K+K2;
+	vec4 oy = mod(floor(p*K),7.0)*K+K2;
+	vec4 dx = Pfx + jitter*ox;
+	vec4 dy = Pfy + jitter*oy;
+	vec4 d = dx * dx + dy * dy; // d11, d12, d21 and d22, squared
+	// Sort out the two smallest distances
+#if 0
+	// Cheat and pick only F1
+	d.xy = min(d.xy, d.zw);
+	d.x = min(d.x, d.y);
+	return d.xx; // F1 duplicated, F2 not computed
+#else
+	// Do it right and find both F1 and F2
+	d.xy = (d.x < d.y) ? d.xy : d.yx; // Swap if smaller
+	d.xz = (d.x < d.z) ? d.xz : d.zx;
+	d.xw = (d.x < d.w) ? d.xw : d.wx;
+	d.y = min(d.y, d.z);
+	d.y = min(d.y, d.w);
+	return sqrt(d.xy);
+#endif
+}
+```
+
+
+

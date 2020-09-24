@@ -41,3 +41,13 @@ It should now work.
 [improve noise](assets/001/paper445_improvenoise.pdf)插值曲线改进
 
 [simplexnoise.pdf](assets/001/simplexnoise.pdf) Ian McEwan的论文，simplex noise算法再GLSL中的应用。
+
+read [this great article by Inigo Quiles about advanced noise](http://www.iquilezles.org/www/articles/morenoise/morenoise.htm).
+
+[ "Texturing and Modeling: a Procedural Approach" (3rd edition), by Kenton Musgrave](assets/001/Texturing and Modeling - A Procedural Approach.pdf)
+
+[ashima/webgl-noise](https://github.com/ashima/webgl-noise/wiki)
+
+[noisemachine](http://www.noisemachine.com/)
+
+ [A famous article by Ken Perlin and Fabrice Neyret called "flow noise"](http://evasion.imag.fr/Publications/2001/PN01/)
