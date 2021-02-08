@@ -573,3 +573,8 @@ It is possible to operate within the range of the unused bits using the stencil 
 
 ### GrabPass
 
+抓取物体被绘制的范围中的屏幕图像绘制成贴图，随后可以被之后的pass使用。
+
+- `Grab Pass {}`,之后可以使用`_GrabTexture`使用抓取到的贴图。Note: this form of grab pass will do the time-consuming screen grabbing operation for each object that uses it.
+- `Grab Pass {"TextureName"}`
+
